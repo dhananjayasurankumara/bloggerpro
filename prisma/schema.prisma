@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
@@ -38,7 +38,9 @@ model User {
   prefLowNoise     Boolean         @default(false)
   accounts         Account[]
   comments         Comment[]
+  commentLikes     CommentLike[]
   forumPosts       ForumPost[]
+  forumPostVotes   ForumPostVote[]
   forumTopics      ForumTopic[]
   notifications    Notification[]
   orders           Order[]
@@ -47,8 +49,6 @@ model User {
   sessions         Session[]
   topicLikes       TopicLike[]
   topicVotes       TopicVote[]
-  forumPostVotes   ForumPostVote[]
-  commentLikes    CommentLike[]
   bookmarks        Post[]          @relation("UserBookmarks")
 }
 
@@ -95,8 +95,8 @@ model Post {
   authorId      String
   categoryId    String
   comments      Comment[]
-  category      Category   @relation(fields: [categoryId], references: [id])
   author        User       @relation(fields: [authorId], references: [id])
+  category      Category   @relation(fields: [categoryId], references: [id])
   postVotes     PostVote[]
   bookmarkedBy  User[]     @relation("UserBookmarks")
 }
@@ -109,24 +109,24 @@ model Category {
 }
 
 model Comment {
-  id          String        @id @default(cuid())
-  content     String
-  createdAt   DateTime      @default(now())
-  userId      String
-  postId      String
-  parentId    String?
-  isAnonymous Boolean       @default(false)
-  votes       Int           @default(0)
-  parent      Comment?      @relation("CommentReplies", fields: [parentId], references: [id])
-  replies     Comment[]     @relation("CommentReplies")
-  post        Post          @relation(fields: [postId], references: [id])
-  user        User          @relation(fields: [userId], references: [id])
+  id           String        @id @default(cuid())
+  content      String
+  createdAt    DateTime      @default(now())
+  userId       String
+  postId       String
+  parentId     String?
+  isAnonymous  Boolean       @default(false)
+  votes        Int           @default(0)
+  parent       Comment?      @relation("CommentReplies", fields: [parentId], references: [id])
+  replies      Comment[]     @relation("CommentReplies")
+  post         Post          @relation(fields: [postId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
   commentLikes CommentLike[]
 }
 
 model PostVote {
   id        String   @id @default(cuid())
-  type      Int      // 1 or -1
+  type      Int
   userId    String
   postId    String
   createdAt DateTime @default(now())
@@ -175,10 +175,10 @@ model ForumPost {
   isEdited  Boolean         @default(false)
   votes     Int             @default(0)
   updatedAt DateTime        @updatedAt
+  author    User            @relation(fields: [authorId], references: [id])
   parent    ForumPost?      @relation("ForumReplies", fields: [parentId], references: [id])
   replies   ForumPost[]     @relation("ForumReplies")
   topic     ForumTopic      @relation(fields: [topicId], references: [id])
-  author    User            @relation(fields: [authorId], references: [id])
   postVotes ForumPostVote[]
 }
 
@@ -207,7 +207,7 @@ model TopicVote {
 
 model ForumPostVote {
   id        String    @id @default(cuid())
-  type      Int       // 1 or -1
+  type      Int
   userId    String
   postId    String
   createdAt DateTime  @default(now())
