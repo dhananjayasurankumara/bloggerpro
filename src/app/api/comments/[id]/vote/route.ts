@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+/* Production Sync: 2026-03-12 */
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { NextResponse } from "next/server";
