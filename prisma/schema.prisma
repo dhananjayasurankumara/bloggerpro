@@ -1,0 +1,332 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String          @id @default(cuid())
+  name             String?
+  email            String?         @unique
+  emailVerified    DateTime?
+  image            String?
+  password         String?
+  role             String          @default("FREE")
+  bio              String?
+  location         String?
+  website          String?
+  twitter          String?
+  linkedin         String?
+  github           String?
+  language         String?         @default("English")
+  timezone         String?         @default("UTC")
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  points           Int             @default(0)
+  subscriptionId   String?
+  stripeCustomerId String?
+  isProfilePublic  Boolean         @default(true)
+  notifNetwork     Boolean         @default(true)
+  notifDirect      Boolean         @default(true)
+  notifMarket      Boolean         @default(false)
+  notifTransaction Boolean         @default(true)
+  prefDarkMode     Boolean         @default(true)
+  prefLowNoise     Boolean         @default(false)
+  accounts         Account[]
+  comments         Comment[]
+  forumPosts       ForumPost[]
+  forumTopics      ForumTopic[]
+  notifications    Notification[]
+  orders           Order[]
+  posts            Post[]
+  postVotes        PostVote[]
+  sessions         Session[]
+  topicLikes       TopicLike[]
+  topicVotes       TopicVote[]
+  forumPostVotes   ForumPostVote[]
+  commentLikes    CommentLike[]
+  bookmarks        Post[]          @relation("UserBookmarks")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Post {
+  id            String     @id @default(cuid())
+  title         String
+  slug          String     @unique
+  content       String
+  excerpt       String?
+  published     Boolean    @default(false)
+  isPremium     Boolean    @default(false)
+  featuredImage String?
+  readTime      String?
+  viewCount     Int        @default(0)
+  votes         Int        @default(0)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  authorId      String
+  categoryId    String
+  comments      Comment[]
+  category      Category   @relation(fields: [categoryId], references: [id])
+  author        User       @relation(fields: [authorId], references: [id])
+  postVotes     PostVote[]
+  bookmarkedBy  User[]     @relation("UserBookmarks")
+}
+
+model Category {
+  id    String @id @default(cuid())
+  name  String @unique
+  slug  String @unique
+  posts Post[]
+}
+
+model Comment {
+  id          String        @id @default(cuid())
+  content     String
+  createdAt   DateTime      @default(now())
+  userId      String
+  postId      String
+  parentId    String?
+  isAnonymous Boolean       @default(false)
+  votes       Int           @default(0)
+  parent      Comment?      @relation("CommentReplies", fields: [parentId], references: [id])
+  replies     Comment[]     @relation("CommentReplies")
+  post        Post          @relation(fields: [postId], references: [id])
+  user        User          @relation(fields: [userId], references: [id])
+  commentLikes CommentLike[]
+}
+
+model PostVote {
+  id        String   @id @default(cuid())
+  type      Int      // 1 or -1
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, postId])
+}
+
+model CommentLike {
+  id        String   @id @default(cuid())
+  userId    String
+  commentId String
+  createdAt DateTime @default(now())
+  comment   Comment  @relation(fields: [commentId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, commentId])
+}
+
+model ForumTopic {
+  id            String      @id @default(cuid())
+  title         String
+  content       String
+  category      String
+  votes         Int         @default(0)
+  createdAt     DateTime    @default(now())
+  isPremiumOnly Boolean     @default(false)
+  viewCount     Int         @default(0)
+  authorId      String
+  isEdited      Boolean     @default(false)
+  updatedAt     DateTime    @updatedAt
+  posts         ForumPost[]
+  author        User        @relation(fields: [authorId], references: [id])
+  likes         TopicLike[]
+  voters        TopicVote[]
+}
+
+model ForumPost {
+  id        String          @id @default(cuid())
+  content   String
+  createdAt DateTime        @default(now())
+  authorId  String
+  topicId   String
+  parentId  String?
+  isEdited  Boolean         @default(false)
+  votes     Int             @default(0)
+  updatedAt DateTime        @updatedAt
+  parent    ForumPost?      @relation("ForumReplies", fields: [parentId], references: [id])
+  replies   ForumPost[]     @relation("ForumReplies")
+  topic     ForumTopic      @relation(fields: [topicId], references: [id])
+  author    User            @relation(fields: [authorId], references: [id])
+  postVotes ForumPostVote[]
+}
+
+model TopicLike {
+  id        String     @id @default(cuid())
+  userId    String
+  topicId   String
+  createdAt DateTime   @default(now())
+  topic     ForumTopic @relation(fields: [topicId], references: [id])
+  user      User       @relation(fields: [userId], references: [id])
+
+  @@unique([userId, topicId])
+}
+
+model TopicVote {
+  id        String     @id @default(cuid())
+  type      Int
+  userId    String
+  topicId   String
+  createdAt DateTime   @default(now())
+  topic     ForumTopic @relation(fields: [topicId], references: [id])
+  user      User       @relation(fields: [userId], references: [id])
+
+  @@unique([userId, topicId])
+}
+
+model ForumPostVote {
+  id        String    @id @default(cuid())
+  type      Int       // 1 or -1
+  userId    String
+  postId    String
+  createdAt DateTime  @default(now())
+  post      ForumPost @relation(fields: [postId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@unique([userId, postId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  content   String
+  read      Boolean  @default(false)
+  type      String
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  price       Float
+  image       String?
+  downloadUrl String?
+  isFeatured  Boolean  @default(false)
+  category    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orders      Order[]
+}
+
+model Order {
+  id              String   @id @default(cuid())
+  userId          String
+  productId       String
+  amount          Float
+  status          String   @default("PENDING")
+  stripeSessionId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  product         Product  @relation(fields: [productId], references: [id])
+  user            User     @relation(fields: [userId], references: [id])
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String?
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model SiteSettings {
+  id              String   @id @default("singleton")
+  siteName        String   @default("BloggerPro")
+  siteDescription String?
+  contactEmail    String?
+  primaryColor    String   @default("#10b981")
+  logoUrl         String?
+  adClient        String?
+  adsEnabled      Boolean  @default(false)
+  chatbotEnabled  Boolean  @default(true)
+  chatbotName     String   @default("ProBot")
+  chatbotWelcome  String   @default("Hi! I'm ProBot. How can I help you today?")
+  updatedAt       DateTime @updatedAt
+}
+
+model StaticPage {
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+  content   String
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CommunityRule {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WhatsNew {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  type      String   @default("UPDATE")
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BotCommand {
+  id        String   @id @default(cuid())
+  command   String   @unique
+  response  String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DailyTip {
+  id        String   @id @default(cuid())
+  content   String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

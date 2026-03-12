@@ -1,0 +1,111 @@
+﻿Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+node.exe : 
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (:String) [],    
+ RemoteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+> Build error occurred
+Error: Turbopack build 
+failed with 1 errors:
+./node_modules/@prisma/
+client/index-browser.js
+:1:16
+Module not found: 
+Can't resolve '.prisma/
+client/index-browser'
+[0m[31m[1m>[22m[39
+m[90m 1 |[39m 
+[36mconst[39m prisma 
+[33m=[39m require([3
+2m'.prisma/client/index
+-browser'[39m)
+ [90m   |[39m        
+        [31m[1m^[22m
+[39m[31m[1m^[22m[3
+9m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[31
+m[1m^[22m[39m[31m[
+1m^[22m[39m[31m[1m^
+[22m[39m[31m[1m^[2
+2m[39m[31m[1m^[22m
+[39m[31m[1m^[22m[39
+m[31m[1m^[22m[39m[
+31m[1m^[22m[39m[31m
+[1m^[22m[39m[31m[1
+m^[22m[39m[31m[1m^
+[22m[39m[31m[1m^[22
+m[39m[31m[1m^[22m[
+39m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[3
+1m[1m^[22m[39m[31m
+[1m^[22m[39m[31m[1m
+^[22m[39m[31m[1m^[
+22m[39m[31m[1m^[22m
+[39m[31m[1m^[22m[3
+9m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[31
+m[1m^[22m[39m[31m[
+1m^[22m[39m[31m[1m^
+[22m[39m[31m[1m^[2
+2m[39m[31m[1m^[22m
+[39m[31m[1m^[22m[39
+m[31m[1m^[22m[39m[
+31m[1m^[22m[39m[31m
+[1m^[22m[39m[31m[1
+m^[22m[39m[31m[1m^
+[22m[39m[31m[1m^[22
+m[39m
+ [90m 2 |[39m
+ [90m 3 |[39m module
+[33m.[39mexports 
+[33m=[39m prisma
+ [90m 4 |[39m[0m
+
+
+
+Import trace:
+  Client Component 
+Browser:
+    ./node_modules/@pri
+sma/client/index-browse
+r.js [Client Component 
+Browser]
+    
+./src/lib/prisma.ts 
+[Client Component 
+Browser]
+    ./src/app/api/newsl
+etter/route.ts [Client 
+Component Browser]
+    ./src/app/api/newsl
+etter/route.ts [App 
+Route]
+
+https://nextjs.org/docs
+/messages/module-not-fo
+und
+
+
+    at ./node_modules/ 
+(prisma/client/index-br
+owser.js:1:16)
+    at <unknown> (https
+://nextjs.org/docs/mess
+ages/module-not-found)

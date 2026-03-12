@@ -1,0 +1,88 @@
+﻿
+> bloggerpro@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 7.3s
+  Running TypeScript ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/24) ...
+node.exe : ΓÜá 
+metadataBase property 
+in metadata export is 
+not set for resolving 
+social open graph or 
+twitter images, using "
+http://localhost:3000".
+ See https://nextjs.org
+/docs/app/api-reference
+/functions/generate-met
+adata#metadatabase
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (ΓÜá metadataB   
+ as...ta#metadataba    
+se:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+  Generating static pages using 7 workers (6/24) 
+  Generating static pages using 7 workers (12/24) 
+Error occurred 
+prerendering page "/com
+munity/%5Bslug%5D/%5Bto
+picId%5D". Read more: h
+ttps://nextjs.org/docs/
+messages/prerender-erro
+r
+Error [PrismaClientInit
+ializationError]: 
+Invalid `prisma.forumTo
+pic.findUnique()` 
+invocation:
+
+
+Can't reach database 
+server at 
+`localhost:51214`
+
+Please make sure your 
+database server is 
+running at 
+`localhost:51214`.
+    at async h (D:\BLOG
+GERPRO\.next\server\chu
+nks\ssr\[root-of-the-se
+rver]__c4b03743._.js:1:
+1829) {
+  clientVersion: 
+'6.19.2',
+  errorCode: undefined,
+  retryable: undefined,
+  digest: '1136538497'
+}
+Export encountered an 
+error on /community/%5B
+slug%5D/%5BtopicId%5D/p
+age: /community/%5Bslug
+%5D/%5BtopicId%5D, 
+exiting the build.
+Γ¿» Next.js build 
+worker exited with 
+code: 1 and signal: 
+null

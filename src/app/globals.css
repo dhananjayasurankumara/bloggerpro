@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #1a5c3a;
+  --color-accent: #f5a623;
+  --color-gold: #f5a623;
+  --color-deep-green: #1a5c3a;
+  
+  --font-sans: "Inter", "system-ui", "sans-serif";
+  --font-display: "Outfit", "system-ui", "sans-serif";
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #000000;
+  --primary: #1a5c3a;
+  --accent: #f5a623;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ffffff;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+.premium-gradient {
+  background: linear-gradient(135deg, #1a5c3a 0%, #0d2e1d 100%);
+}
+
+.gold-text {
+  color: #f5a623;
+}
+
+.ad-slot {
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 1.5rem 0;
+  border: 1px dashed #ccc;
+  min-height: 100px;
+}
+
+/* Rich Text Editor Styles */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #adb5bd;
+  pointer-events: none;
+  height: 0;
+}
+
+.ProseMirror:focus {
+  outline: none;
+}
+
+.prose img {
+  border-radius: 2rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  margin: 3rem auto;
+  max-width: 100%;
+  height: auto;
+}
+
+.prose a {
+  @apply text-primary font-bold transition-all hover:opacity-80;
+}
+
+/* Custom Premium Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-200 dark:bg-zinc-800 rounded-full border-2 border-solid border-white dark:border-black transition-colors;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-300 dark:bg-zinc-700;
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #e5e7eb transparent;
+}
+
+.dark * {
+  scrollbar-color: #27272a transparent;
+}

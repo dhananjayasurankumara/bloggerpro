@@ -1,0 +1,7 @@
+Sitemap: https://bloggerpro.com/sitemap.xml
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api
+Disallow: /profile/*/settings
