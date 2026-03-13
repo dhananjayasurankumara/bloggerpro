@@ -25,6 +25,13 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Missing credentials");
         }
 
+        // Detect placeholder/disconnected database
+        const dbUrl = process.env.DATABASE_URL;
+        if (!dbUrl || dbUrl.includes("user:password")) {
+          console.warn("[AUTH] Login attempted in Disconnected Mode. Rejecting.");
+          throw new Error("Database offline. Use local SQLite or provide a valid connection string.");
+        }
+
         try {
           const user = await prisma.user.findUnique({
             where: { email: credentials.email },
@@ -77,36 +84,48 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async session({ session, token }) {
       console.log("[AUTH] Session callback triggered", { sub: token?.sub });
+      
       if (session.user && token.sub) {
-        // Verify user still exists in DB and select all required fields
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.sub },
-          select: { 
-            id: true, 
-            role: true, 
-            bio: true,
-            notifNetwork: true,
-            notifDirect: true,
-            notifMarket: true,
-            notifTransaction: true,
-            prefDarkMode: true,
-            prefLowNoise: true
-          }
-        });
-
-        if (!dbUser || dbUser.role === "BANNED") {
-          return null as any;
+        // Detect placeholder/disconnected database
+        const dbUrl = process.env.DATABASE_URL;
+        if (!dbUrl || dbUrl.includes("user:password")) {
+          return session; // Return basic session without DB data
         }
 
-        (session.user as any).id = dbUser.id;
-        (session.user as any).role = dbUser.role;
-        (session.user as any).bio = dbUser.bio;
-        (session.user as any).notifNetwork = dbUser.notifNetwork;
-        (session.user as any).notifDirect = dbUser.notifDirect;
-        (session.user as any).notifMarket = dbUser.notifMarket;
-        (session.user as any).notifTransaction = dbUser.notifTransaction;
-        (session.user as any).prefDarkMode = dbUser.prefDarkMode;
-        (session.user as any).prefLowNoise = dbUser.prefLowNoise;
+        try {
+          // Verify user still exists in DB and select all required fields
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.sub },
+            select: { 
+              id: true, 
+              role: true, 
+              bio: true,
+              notifNetwork: true,
+              notifDirect: true,
+              notifMarket: true,
+              notifTransaction: true,
+              prefDarkMode: true,
+              prefLowNoise: true
+            }
+          });
+
+          if (!dbUser || dbUser.role === "BANNED") {
+            return null as any;
+          }
+
+          (session.user as any).id = dbUser.id;
+          (session.user as any).role = dbUser.role;
+          (session.user as any).bio = dbUser.bio;
+          (session.user as any).notifNetwork = dbUser.notifNetwork;
+          (session.user as any).notifDirect = dbUser.notifDirect;
+          (session.user as any).notifMarket = dbUser.notifMarket;
+          (session.user as any).notifTransaction = dbUser.notifTransaction;
+          (session.user as any).prefDarkMode = dbUser.prefDarkMode;
+          (session.user as any).prefLowNoise = dbUser.prefLowNoise;
+        } catch (error) {
+          console.error("[AUTH_SESSION_ERROR] Database unreachable, serving limited session:", error);
+          // Return the basic session from token/OAuth without DB enhancements
+        }
       }
       return session;
     },

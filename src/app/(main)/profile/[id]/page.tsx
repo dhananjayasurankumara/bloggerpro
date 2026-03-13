@@ -29,24 +29,33 @@ export default async function UserProfilePage({
   const session = await getServerSession(authOptions);
   const isOwnProfile = session?.user && (session.user as any).id === id;
   
-  const user = await prisma.user.findUnique({
-    where: { id },
-    include: {
-      posts: {
-        where: { published: true },
-        take: 6,
-        include: { category: true, author: true }
-      },
-      _count: { select: { posts: true, forumTopics: true } }
+  let user: any = null;
+  let engagement: any = null;
+
+  try {
+    user = await prisma.user.findUnique({
+      where: { id },
+      include: {
+        posts: {
+          where: { published: true },
+          take: 6,
+          include: { category: true, author: true }
+        },
+        _count: { select: { posts: true, forumTopics: true } }
+      }
+    });
+
+    if (user) {
+      engagement = await prisma.post.aggregate({
+        where: { authorId: id, published: true },
+        _sum: { viewCount: true, votes: true }
+      }) as any;
     }
-  });
+  } catch (error) {
+    console.error("[PROFILE_PAGE_ERROR] Database unreachable:", error);
+  }
 
   if (!user) notFound();
-  
-  const engagement = await prisma.post.aggregate({
-    where: { authorId: id, published: true },
-    _sum: { viewCount: true, votes: true }
-  }) as any;
 
   // Privacy Check
   if (!(user as any).isProfilePublic && !isOwnProfile) {

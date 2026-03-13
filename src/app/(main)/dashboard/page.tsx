@@ -26,16 +26,23 @@ export default async function UserDashboard() {
   }
 
   // Fetch bookmarked posts
-  const user = await prisma.user.findUnique({
-    where: { id: (session.user as any).id },
-    include: {
-      bookmarks: {
-        include: { category: true, author: true }
+  let user: any = null;
+  try {
+    user = await prisma.user.findUnique({
+      where: { id: (session.user as any).id },
+      include: {
+        bookmarks: {
+          include: { category: true, author: true }
+        }
       }
-    }
-  });
+    });
+  } catch (error) {
+    console.error("[DASHBOARD_ERROR] Database unreachable:", error);
+    // If DB is down, we can't really show the dashboard properly
+    // but we can at least not crash.
+  }
 
-  if (!user) {
+  if (!user && !process.env.DATABASE_URL?.includes("user:password")) {
     // Session is stale, user was deleted from DB
     redirect("/api/auth/signout");
   }

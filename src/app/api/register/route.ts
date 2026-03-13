@@ -12,6 +12,12 @@ export async function POST(request: Request) {
       return new NextResponse("Missing fields", { status: 400 });
     }
 
+    // Detect placeholder/disconnected database
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl || dbUrl.includes("user:password")) {
+      return new NextResponse("Database Restricted: Feature unavailable in local disconnected mode.", { status: 503 });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await prisma.user.create({
@@ -25,7 +31,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(user);
   } catch (error: any) {
-    console.log(error, "REGISTRATION_ERROR");
-    return new NextResponse("Internal Error", { status: 500 });
+    console.error("[REGISTRATION_ERROR]", error);
+    return new NextResponse("Database unavailable. Please check your connection.", { status: 500 });
   }
 }
