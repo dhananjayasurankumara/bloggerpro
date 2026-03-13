@@ -9,7 +9,9 @@ import {
   ArrowRight,
   User,
   Zap,
-  LayoutDashboard
+  LayoutDashboard,
+  Heart,
+  Clock
 } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -26,28 +28,40 @@ export default async function UserDashboard() {
   }
 
   // Fetch bookmarked posts
-  let user: any = null;
-  try {
-    user = await prisma.user.findUnique({
-      where: { id: (session.user as any).id },
-      include: {
-        bookmarks: {
-          include: { category: true, author: true }
-        }
+  const user = await prisma.user.findUnique({
+    where: { id: (session.user as any).id },
+    include: {
+      bookmarks: {
+        include: { category: true, author: true }
       }
-    });
-  } catch (error) {
-    console.error("[DASHBOARD_ERROR] Database unreachable:", error);
-    // If DB is down, we can't really show the dashboard properly
-    // but we can at least not crash.
-  }
+    }
+  });
 
-  if (!user && !process.env.DATABASE_URL?.includes("user:password")) {
+  if (!user) {
     // Session is stale, user was deleted from DB
     redirect("/api/auth/signout");
   }
 
   const userRole = (session.user as any).role;
+
+  // Aggregate Analytics Data
+  const [postStats, topicStats, pendingPostsCount] = await Promise.all([
+    prisma.post.aggregate({
+      where: { authorId: (session.user as any).id, published: true },
+      _sum: { viewCount: true, votes: true }
+    }),
+    prisma.forumTopic.aggregate({
+      where: { authorId: (session.user as any).id },
+      _sum: { viewCount: true, votes: true }
+    }),
+    prisma.post.count({
+      where: { authorId: (session.user as any).id, status: "PENDING" }
+    })
+  ]);
+
+  const totalReach = (postStats._sum?.viewCount || 0) + (topicStats._sum?.viewCount || 0);
+  const totalEngagement = (postStats._sum?.votes || 0) + (topicStats._sum?.votes || 0);
+  const contributionCount = await prisma.post.count({ where: { authorId: (session.user as any).id, published: true } });
 
 
   return (
@@ -108,11 +122,11 @@ export default async function UserDashboard() {
                         <Bookmark className="w-4 h-4" /> Bookmarks
                     </Link>
                     <Link href="/community" className="w-full flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-primary transition-all font-bold">
-                        <MessageSquare className="w-4 h-4" /> My Discussions
+                        <MessageSquare className="w-4 h-4" /> Community
                     </Link>
-                    <Link href="/pricing" className="w-full flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-primary transition-all font-bold">
-                        <TrendingUp className="w-4 h-4" /> Analytics
-                    </Link>
+                    <div className="w-full flex items-center gap-3 px-4 py-3 bg-primary/10 text-primary rounded-xl font-bold">
+                        <TrendingUp className="w-4 h-4" /> Insights Active
+                    </div>
                 </nav>
             </div>
 
@@ -126,36 +140,61 @@ export default async function UserDashboard() {
             )}
           </div>
 
-          {/* Bookmarks Grid */}
-          <div className="lg:col-span-9 space-y-8">
-            <div className="flex items-center gap-3">
-                <Bookmark className="w-6 h-6 text-primary" />
-                <h2 className="text-2xl font-display font-bold">Saved for Later</h2>
+          {/* Main Content Area */}
+          <div className="lg:col-span-9 space-y-12">
+            {/* Analytics Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[
+                    { label: "Total Reach", value: totalReach.toLocaleString(), icon: TrendingUp, color: "text-blue-500", desc: "Total content views" },
+                    { label: "Engagement", value: totalEngagement.toLocaleString(), icon: Heart, color: "text-rose-500", desc: "Combined votes/likes" },
+                    { label: "Submissions", value: pendingPostsCount, icon: Clock, color: "text-amber-500", desc: "Pending moderation" }
+                ].map((stat, i) => (
+                    <div key={i} className="p-6 bg-white dark:bg-black rounded-[32px] border border-gray-100 dark:border-gray-900 shadow-sm transition-all hover:scale-[1.02] group">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className={`p-3 rounded-2xl bg-gray-50 dark:bg-zinc-900 ${stat.color} group-hover:scale-110 transition-transform`}>
+                                <stat.icon className="w-5 h-5" />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Live</span>
+                        </div>
+                        <div>
+                            <p className="text-3xl font-display font-bold">{stat.value}</p>
+                            <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 mt-1">{stat.label}</h4>
+                            <p className="text-[9px] text-gray-500 mt-4 leading-none italic">{stat.desc}</p>
+                        </div>
+                    </div>
+                ))}
             </div>
-            
-            {user?.bookmarks.length ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {user.bookmarks.map((post: any) => (
-                        <ArticleCard key={post.id} post={{
-                            ...post,
-                            readTime: post.readTime || "10 min read"
-                        }} />
-                    ))}
+            {/* Bookmarks Grid */}
+            <div className="space-y-8">
+                <div className="flex items-center gap-3">
+                    <Bookmark className="w-6 h-6 text-primary" />
+                    <h2 className="text-2xl font-display font-bold">Saved for Later</h2>
                 </div>
-            ) : (
-                <div className="p-20 text-center rounded-[50px] bg-white dark:bg-black border border-dashed border-gray-100 dark:border-gray-900 space-y-6">
-                    <div className="w-16 h-16 bg-gray-50 dark:bg-zinc-900 rounded-2xl flex items-center justify-center mx-auto">
-                        <Bookmark className="w-8 h-8 text-gray-300" />
+                
+                {user?.bookmarks.length ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {user.bookmarks.map((post: any) => (
+                            <ArticleCard key={post.id} post={{
+                                ...post,
+                                readTime: post.readTime || "10 min read"
+                            }} />
+                        ))}
                     </div>
-                    <div className="space-y-2">
-                        <h3 className="text-xl font-bold">Your reading list is empty</h3>
-                        <p className="text-gray-500 text-sm max-w-sm mx-auto">Found a guide you like? Click the bookmark icon to save it here for quick access later.</p>
+                ) : (
+                    <div className="p-20 text-center rounded-[50px] bg-white dark:bg-black border border-dashed border-gray-100 dark:border-gray-900 space-y-6">
+                        <div className="w-16 h-16 bg-gray-50 dark:bg-zinc-900 rounded-2xl flex items-center justify-center mx-auto">
+                            <Bookmark className="w-8 h-8 text-gray-300" />
+                        </div>
+                        <div className="space-y-2">
+                            <h3 className="text-xl font-bold">Your reading list is empty</h3>
+                            <p className="text-gray-500 text-sm max-w-sm mx-auto">Found a guide you like? Click the bookmark icon to save it here for quick access later.</p>
+                        </div>
+                        <Link href="/blog" className="inline-flex items-center gap-2 text-primary font-bold hover:text-accent transition-colors">
+                            Browse Articles <ArrowRight className="w-4 h-4" />
+                        </Link>
                     </div>
-                    <Link href="/blog" className="inline-flex items-center gap-2 text-primary font-bold hover:text-accent transition-colors">
-                        Browse Articles <ArrowRight className="w-4 h-4" />
-                    </Link>
-                </div>
-            )}
+                )}
+            </div>
           </div>
         </div>
       </div>

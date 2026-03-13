@@ -13,6 +13,7 @@ export default function ProfileEditButton({ user }: { user: any }) {
   const [loading, setLoading] = useState(false);
   const [compressing, setCompressing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   const [formData, setFormData] = useState({
@@ -21,6 +22,7 @@ export default function ProfileEditButton({ user }: { user: any }) {
     location: user.location || "",
     website: user.website || "",
     image: user.image || "",
+    coverImage: user.coverImage || "",
   });
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -44,6 +46,32 @@ export default function ProfileEditButton({ user }: { user: any }) {
       };
     } catch (error) {
       toast.error("Failed to process image");
+    } finally {
+      setCompressing(false);
+    }
+  };
+
+  const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setCompressing(true);
+    try {
+      const options = {
+        maxSizeMB: 0.8,
+        maxWidthOrHeight: 1200,
+        useWebWorker: true,
+      };
+      
+      const compressedFile = await imageCompression(file, options);
+      const reader = new FileReader();
+      reader.readAsDataURL(compressedFile);
+      reader.onloadend = () => {
+        setFormData({ ...formData, coverImage: reader.result as string });
+        toast.success("Cover image processed!");
+      };
+    } catch (error) {
+      toast.error("Failed to process cover image");
     } finally {
       setCompressing(false);
     }
@@ -104,37 +132,66 @@ export default function ProfileEditButton({ user }: { user: any }) {
               </div>
 
               <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto">
-                {/* Avatar Upload */}
-                <div className="flex flex-col items-center gap-4">
-                    <div className="relative group">
-                        <div className="w-32 h-32 rounded-[40px] bg-gray-100 dark:bg-zinc-900 border-4 border-white dark:border-black shadow-xl overflow-hidden flex items-center justify-center">
-                            {formData.image ? (
-                                <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
-                            ) : (
-                                <User className="w-12 h-12 text-gray-300" />
-                            )}
-                            {compressing && (
-                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                                    <Loader2 className="w-8 h-8 text-white animate-spin" />
-                                </div>
-                            )}
-                        </div>
-                        <button 
-                            disabled={compressing}
-                            onClick={() => fileInputRef.current?.click()}
-                            className="absolute -bottom-2 -right-2 p-3 bg-primary text-white rounded-2xl shadow-lg hover:bg-opacity-90 active:scale-90 transition-all z-10"
+                {/* Avatar & Cover Upload */}
+                <div className="space-y-8">
+                    <div className="space-y-3">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Profile Cover</label>
+                        <div 
+                            onClick={() => coverInputRef.current?.click()}
+                            className="w-full h-32 md:h-40 rounded-[32px] bg-gray-100 dark:bg-zinc-900 border-2 border-dashed border-gray-200 dark:border-zinc-800 flex flex-col items-center justify-center gap-2 overflow-hidden cursor-pointer hover:border-primary transition-all group relative"
                         >
-                            <Camera className="w-5 h-5" />
-                        </button>
-                        <input 
-                            type="file" 
-                            ref={fileInputRef} 
-                            onChange={handleImageChange} 
-                            accept="image/*" 
-                            className="hidden" 
-                        />
+                            {formData.coverImage ? (
+                                <img src={formData.coverImage} alt="Cover Preview" className="w-full h-full object-cover" />
+                            ) : (
+                                <>
+                                    <Camera className="w-6 h-6 text-gray-400" />
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase">Upload Banner</span>
+                                </>
+                            )}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <span className="text-white text-xs font-bold px-4 py-2 bg-primary rounded-xl">Change Cover</span>
+                            </div>
+                            <input 
+                                type="file" 
+                                ref={coverInputRef} 
+                                onChange={handleCoverChange} 
+                                accept="image/*" 
+                                className="hidden" 
+                            />
+                        </div>
                     </div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Profile Picture</p>
+
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="relative group">
+                            <div className="w-32 h-32 rounded-[40px] bg-gray-100 dark:bg-zinc-900 border-4 border-white dark:border-black shadow-xl overflow-hidden flex items-center justify-center">
+                                {formData.image ? (
+                                    <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
+                                ) : (
+                                    <User className="w-12 h-12 text-gray-300" />
+                                )}
+                                {compressing && (
+                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                        <Loader2 className="w-8 h-8 text-white animate-spin" />
+                                    </div>
+                                )}
+                            </div>
+                            <button 
+                                disabled={compressing}
+                                onClick={() => fileInputRef.current?.click()}
+                                className="absolute -bottom-2 -right-2 p-3 bg-primary text-white rounded-2xl shadow-lg hover:bg-opacity-90 active:scale-90 transition-all z-10"
+                            >
+                                <Camera className="w-5 h-5" />
+                            </button>
+                            <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                onChange={handleImageChange} 
+                                accept="image/*" 
+                                className="hidden" 
+                            />
+                        </div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Avatar Recognition</p>
+                    </div>
                 </div>
 
                 <div className="space-y-6">

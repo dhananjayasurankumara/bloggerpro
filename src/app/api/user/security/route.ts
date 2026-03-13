@@ -15,12 +15,6 @@ export async function PATCH(req: Request) {
     const { currentPassword, newPassword } = await req.json();
     const userId = (session.user as any).id;
 
-    // Detect placeholder/disconnected database
-    const dbUrl = process.env.DATABASE_URL;
-    if (!dbUrl || dbUrl.includes("user:password")) {
-      return NextResponse.json({ error: "Database Restricted: Feature unavailable in local disconnected mode." }, { status: 503 });
-    }
-
     // 1. Get user with password
     const user = await prisma.user.findUnique({
       where: { id: userId },

@@ -161,7 +161,7 @@ export default async function ArticlePage({
           title={post.title}
           authorName={post.author.name || "BloggerPro Editor"}
           createdAt="March 11, 2026"
-          readTime={post.readTime || "5 min read"}
+          readTime={post.readTime}
           isPaywalled={isPaywalled}
         />
 

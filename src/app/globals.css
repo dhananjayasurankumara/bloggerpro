@@ -73,29 +73,54 @@ body {
   @apply text-primary font-bold transition-all hover:opacity-80;
 }
 
-/* Custom Premium Scrollbar */
+/* Custom Premium Scrollbar - Global Refinement */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-transparent;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-200 dark:bg-zinc-800 rounded-full border-2 border-solid border-white dark:border-black transition-colors;
+  @apply bg-gray-200 dark:bg-zinc-800 rounded-full border-2 border-solid border-white dark:border-black transition-all duration-300;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-gray-300 dark:bg-zinc-700;
 }
 
-/* For Firefox */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #e5e7eb transparent;
+/* Elite Admin Scrollbar Utility */
+.admin-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
 }
 
-.dark * {
-  scrollbar-color: #27272a transparent;
+.admin-scrollbar::-webkit-scrollbar-thumb {
+  background: #1a5c3a; /* Primary Green */
+  border-radius: 10px;
+}
+
+.admin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #f5a623; /* Accent Gold on hover */
+}
+
+/* Firefox Support */
+.admin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #1a5c3a transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.1);
+  border-radius: 10px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
 }

@@ -2,7 +2,7 @@
 import os
 
 env_path = ".env"
-key = "YOUR_API_KEY_HERE"
+key = "sk-..." # Redacted for security
 
 lines = []
 if os.path.exists(env_path):

@@ -11,7 +11,7 @@ export async function GET() {
             orderBy: { createdAt: "desc" }
         });
     } catch (e) {
-        products = await prisma.$queryRaw`SELECT * FROM "Product" ORDER BY "createdAt" DESC`;
+        products = await prisma.$queryRawUnsafe(`SELECT * FROM Product ORDER BY createdAt DESC`);
     }
     return NextResponse.json(products);
   } catch (error) {
@@ -52,10 +52,10 @@ export async function POST(req: Request) {
         const now = new Date().toISOString();
         const id = Math.random().toString(36).substring(7);
         
-        await prisma.$executeRaw`
-            INSERT INTO "Product" ("id", "title", "description", "price", "image", "downloadUrl", "isFeatured", "category", "createdAt", "updatedAt")
-            VALUES (${id}, ${title}, ${description}, ${parseFloat(price)}, ${image}, ${downloadUrl}, ${isFeatured || false}, ${category}, ${new Date(now)}, ${new Date(now)})
-        `;
+        await prisma.$executeRawUnsafe(`
+            INSERT INTO Product (id, title, description, price, image, downloadUrl, isFeatured, category, createdAt, updatedAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, id, title, description, parseFloat(price), image, downloadUrl, isFeatured ? 1 : 0, category, now, now);
         
         return NextResponse.json({ success: true });
     } catch (rawError) {

@@ -22,6 +22,7 @@ export async function PATCH(req: Request) {
       language, 
       timezone, 
       image, 
+      coverImage,
       isProfilePublic 
     } = await req.json();
 
@@ -38,6 +39,7 @@ export async function PATCH(req: Request) {
         language,
         timezone,
         image,
+        coverImage,
         isProfilePublic,
       },
     });

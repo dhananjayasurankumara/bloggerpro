@@ -4,12 +4,6 @@ import Script from "next/script";
 export default async function GoogleAdSense() {
   let settings: any = null;
   
-  // Skip DB call if no valid URL is provided (Local Disconnected Mode)
-  const dbUrl = process.env.DATABASE_URL;
-  if (!dbUrl || dbUrl.includes("user:password")) {
-    return null;
-  }
-
   try {
     settings = await prisma.siteSettings.findUnique({
       where: { id: "singleton" }

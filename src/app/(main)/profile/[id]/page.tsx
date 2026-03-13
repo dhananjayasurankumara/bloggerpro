@@ -11,12 +11,16 @@ import {
   TrendingUp,
   MapPin,
   Calendar,
-  ArrowLeft
+  ArrowLeft,
+  Edit,
+  Trash2,
+  Clock
 } from "lucide-react";
 import ArticleCard from "@/components/ArticleCard";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import ProfileEditButton from "@/components/ProfileEditButton";
+import DeleteButton from "@/components/DeleteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -29,33 +33,24 @@ export default async function UserProfilePage({
   const session = await getServerSession(authOptions);
   const isOwnProfile = session?.user && (session.user as any).id === id;
   
-  let user: any = null;
-  let engagement: any = null;
-
-  try {
-    user = await prisma.user.findUnique({
-      where: { id },
-      include: {
-        posts: {
-          where: { published: true },
-          take: 6,
-          include: { category: true, author: true }
-        },
-        _count: { select: { posts: true, forumTopics: true } }
-      }
-    });
-
-    if (user) {
-      engagement = await prisma.post.aggregate({
-        where: { authorId: id, published: true },
-        _sum: { viewCount: true, votes: true }
-      }) as any;
+  const user = await prisma.user.findUnique({
+    where: { id },
+    include: {
+      posts: {
+        where: { published: true },
+        take: 6,
+        include: { category: true, author: true }
+      },
+      _count: { select: { posts: true, forumTopics: true } }
     }
-  } catch (error) {
-    console.error("[PROFILE_PAGE_ERROR] Database unreachable:", error);
-  }
+  });
 
   if (!user) notFound();
+  
+  const engagement = await prisma.post.aggregate({
+    where: { authorId: id, published: true },
+    _sum: { viewCount: true, votes: true }
+  }) as any;
 
   // Privacy Check
   if (!(user as any).isProfilePublic && !isOwnProfile) {
@@ -87,14 +82,21 @@ export default async function UserProfilePage({
       <div className="container mx-auto px-4">
         {/* Profile Card */}
         <div className="max-w-6xl mx-auto mb-16 relative">
-          <div className="h-64 md:h-80 w-full bg-gradient-to-br from-primary to-emerald-900 rounded-[60px] shadow-2xl overflow-hidden relative">
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+          <div className="h-64 md:h-80 w-full rounded-[60px] shadow-2xl overflow-hidden relative border border-gray-100 dark:border-zinc-900">
+            {user.coverImage ? (
+                <img src={user.coverImage} alt="" className="w-full h-full object-cover" />
+            ) : (
+                <div className="w-full h-full bg-gradient-to-br from-primary via-emerald-800 to-black relative">
+                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
           </div>
           
           <div className="absolute -bottom-12 left-12 flex flex-col md:flex-row items-end gap-8 px-4 w-[calc(100%-48px)]">
-            <div className="w-32 h-32 md:w-44 md:h-44 rounded-[40px] bg-white dark:bg-zinc-900 border-8 border-white dark:border-black shadow-2xl flex items-center justify-center font-display font-bold text-primary text-5xl md:text-7xl shrink-0 overflow-hidden">
+            <div className="w-32 h-32 md:w-44 md:h-44 rounded-[40px] bg-white dark:bg-zinc-900 border-8 border-white dark:border-black shadow-2xl flex items-center justify-center font-display font-bold text-primary text-5xl md:text-7xl shrink-0 overflow-hidden relative group">
               {user.image ? (
-                <img src={user.image} alt={user.name || "User Avatar"} className="w-full h-full object-cover" />
+                <img src={user.image} alt={user.name || "User Avatar"} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
               ) : (
                 user.name?.charAt(0)
               )}
@@ -102,17 +104,17 @@ export default async function UserProfilePage({
             <div className="pb-4 space-y-2 flex-grow">
                <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <h1 className="text-3xl md:text-5xl font-display font-bold text-gray-900 dark:text-white drop-shadow-sm">{user.name}</h1>
+                    <h1 className="text-3xl md:text-5xl font-display font-bold text-white drop-shadow-lg">{user.name}</h1>
                     {user.role === "ADMIN" && <ShieldCheck className="w-6 h-6 md:w-8 md:h-8 text-primary drop-shadow-sm" />}
                   </div>
-                  {isOwnProfile && <ProfileEditButton user={user} />}
+                  {isOwnProfile && <ProfileEditButton user={user as any} />}
                </div>
-               <div className="flex flex-wrap items-center gap-6 text-sm font-bold uppercase tracking-widest text-gray-400">
-                  <span className="flex items-center gap-2">
+               <div className="flex flex-wrap items-center gap-6 text-[10px] font-black uppercase tracking-[0.2em] text-white/70">
+                  <span className="flex items-center gap-2 bg-black/20 backdrop-blur px-3 py-1.5 rounded-lg border border-white/10">
                     <MapPin className="w-4 h-4" /> 
                     {user.location || "Global Citizen"}
                   </span>
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-2 bg-black/20 backdrop-blur px-3 py-1.5 rounded-lg border border-white/10">
                     <Calendar className="w-4 h-4" /> 
                     Joined {new Date(user.createdAt).getFullYear()}
                   </span>
@@ -163,31 +165,122 @@ export default async function UserProfilePage({
             </div>
           </div>
 
-          {/* Published Articles */}
           <div className="lg:col-span-8 space-y-12">
-            <div className="flex items-center justify-between">
-                <h2 className="text-3xl font-display font-bold">Published Insights</h2>
-                <div className="flex items-center gap-2 text-primary font-bold text-sm">
-                    <TrendingUp className="w-4 h-4" /> 
-                    <span>{engagement?._sum?.viewCount || 0} Total Reads</span>
+            {/* My Submissions / Activity (Only for own profile) */}
+            {isOwnProfile && (
+              <div className="space-y-8">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-display font-bold text-gray-900 dark:text-white">My Submissions</h2>
+                    <Link 
+                      href="/articles/submit" 
+                      className="px-6 py-3 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
+                    >
+                      Submit New Article
+                    </Link>
                 </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {user.posts.map((post: any) => (
-                <ArticleCard key={post.id} post={{
-                    ...post,
-                    readTime: post.readTime || "10 min read",
-                    votes: post.votes || 0
-                }} />
-              ))}
-            </div>
-
-            {user.posts.length === 0 && (
-                <div className="p-20 text-center rounded-[40px] bg-gray-50 dark:bg-black border border-dashed border-gray-200 dark:border-gray-800">
-                    <p className="text-gray-400 font-medium">No articles published yet.</p>
+                
+                <div className="bg-gray-50 dark:bg-zinc-950 rounded-[40px] border border-gray-100 dark:border-gray-900 overflow-hidden">
+                  <div className="grid grid-cols-1 divide-y divide-gray-100 dark:divide-zinc-900">
+                    {(await prisma.post.findMany({
+                      where: { authorId: id, NOT: { status: "PUBLISHED" } },
+                      orderBy: { createdAt: "desc" },
+                      include: { category: true }
+                    })).map((submission: any) => (
+                      <div key={submission.id} className="p-6 flex items-center justify-between group hover:bg-white dark:hover:bg-black transition-all">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-xl bg-white dark:bg-black border border-gray-100 dark:border-zinc-800 flex items-center justify-center font-bold text-gray-400 group-hover:border-primary/50 transition-all">
+                            {submission.status === 'PENDING' ? (
+                                <div className="relative">
+                                    <Clock className="w-4 h-4 text-amber-500" />
+                                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full animate-ping"></span>
+                                </div>
+                            ) : (
+                                <ShieldCheck className="w-4 h-4 text-rose-500" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-gray-900 dark:text-white line-clamp-1">{submission.title}</p>
+                            <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">
+                                {submission.category?.name} • Updated {new Date(submission.updatedAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                             <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+                                submission.status === 'PENDING' ? 'bg-amber-500/10 text-amber-500' : 'bg-rose-500/10 text-rose-500'
+                            }`}>
+                                {submission.status}
+                            </span>
+                            <div className="flex items-center gap-2 pl-4 border-l border-gray-100 dark:border-zinc-900">
+                                <Link 
+                                    href={`/articles/edit/${submission.id}`}
+                                    className="p-2 bg-white dark:bg-black border border-gray-100 dark:border-zinc-800 rounded-lg text-gray-400 hover:text-primary transition-all"
+                                >
+                                    <Edit className="w-4 h-4" />
+                                </Link>
+                                <DeleteButton 
+                                    itemId={submission.id}
+                                    deleteUrl={`/api/user/articles/${submission.id}`}
+                                    confirmMessage="Delete this submission permanently?"
+                                />
+                            </div>
+                        </div>
+                      </div>
+                    ))}
+                    {(await prisma.post.count({ where: { authorId: id, NOT: { status: "PUBLISHED" } } })) === 0 && (
+                      <div className="p-12 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest italic">
+                        No pending submissions.
+                      </div>
+                    )}
+                  </div>
                 </div>
+              </div>
             )}
+
+            {/* Published Insights with Management */}
+            <div className="space-y-12">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-3xl font-display font-bold text-gray-900 dark:text-white">Published Insights</h2>
+                    <div className="flex items-center gap-2 text-primary font-bold text-sm">
+                        <TrendingUp className="w-4 h-4" /> 
+                        <span>{engagement?._sum?.viewCount || 0} Total Reads</span>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {user.posts.map((post: any) => (
+                    <div key={post.id} className="relative group/card">
+                        <ArticleCard post={{
+                            ...post,
+                            readTime: post.readTime || "10 min read",
+                            votes: post.votes || 0
+                        }} />
+                        {isOwnProfile && (
+                            <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover/card:opacity-100 transition-all scale-90 group-hover/card:scale-100 z-10">
+                                <Link 
+                                    href={`/articles/edit/${post.id}`}
+                                    className="p-3 bg-white/90 dark:bg-black/90 backdrop-blur rounded-2xl border border-gray-100 dark:border-zinc-800 text-gray-400 hover:text-primary shadow-xl"
+                                >
+                                    <Edit className="w-4 h-4" />
+                                </Link>
+                                <DeleteButton 
+                                     itemId={post.id}
+                                     deleteUrl={`/api/user/articles/${post.id}`}
+                                     confirmMessage="Remove this article from the public feed?"
+                                     className="p-3 bg-white/90 dark:bg-black/90 backdrop-blur rounded-2xl border border-gray-100 dark:border-zinc-800 text-gray-400 hover:text-rose-500 shadow-xl"
+                                />
+                            </div>
+                        )}
+                    </div>
+                ))}
+                </div>
+
+                {user.posts.length === 0 && (
+                    <div className="p-20 text-center rounded-[40px] bg-gray-50 dark:bg-black border border-dashed border-gray-200 dark:border-gray-800">
+                        <p className="text-gray-400 font-medium">No articles published yet.</p>
+                    </div>
+                )}
+            </div>
           </div>
         </div>
       </div>

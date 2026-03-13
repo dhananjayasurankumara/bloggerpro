@@ -47,11 +47,14 @@ export default function SettingsClient() {
     twitter: user?.twitter || "",
     linkedin: user?.linkedin || "",
     github: user?.github || "",
+    image: user?.image || "",
+    coverImage: user?.coverImage || "",
     isProfilePublic: user?.isProfilePublic ?? true,
   });
 
   const [compressing, setCompressing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
 
   const [securityData, setSecurityData] = useState({
     currentPassword: "",
@@ -101,6 +104,7 @@ export default function SettingsClient() {
         linkedin: formData.linkedin,
         github: formData.github,
         image: formData.image,
+        coverImage: formData.coverImage,
         isProfilePublic: formData.isProfilePublic
       });
       await update();
@@ -169,6 +173,31 @@ export default function SettingsClient() {
       toast.success("Avatar ready to save!");
     } catch (error) {
       toast.error("Upload failed");
+    } finally {
+      setCompressing(false);
+    }
+  };
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setCompressing(true);
+    try {
+      const options = {
+        maxSizeMB: 1.0,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      };
+      const compressedFile = await imageCompression(file, options);
+      const uploadData = new FormData();
+      uploadData.append("file", compressedFile);
+
+      const res = await axios.post("/api/admin/upload", uploadData);
+      setFormData({ ...formData, coverImage: res.data.url });
+      toast.success("Cover photo ready to save!");
+    } catch (error) {
+      toast.error("Cover upload failed");
     } finally {
       setCompressing(false);
     }
@@ -317,6 +346,46 @@ export default function SettingsClient() {
                                         onChange={(e) => setFormData({...formData, website: e.target.value})}
                                     />
                                 </div>
+                            </div>
+                            <div className="md:col-span-2 space-y-2">
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Cover Photo URL</label>
+                                <div className="flex gap-4">
+                                    <div className="relative flex-grow">
+                                        <ImageIcon className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                        <input 
+                                            type="url" 
+                                            placeholder="https://images.unsplash.com/your-cover-photo"
+                                            className="w-full pl-12 pr-6 py-4 bg-gray-50 dark:bg-zinc-900 border border-gray-100 dark:border-gray-800 rounded-2xl outline-none focus:ring-2 focus:ring-primary font-bold transition-all"
+                                            value={formData.coverImage}
+                                            onChange={(e) => setFormData({...formData, coverImage: e.target.value})}
+                                        />
+                                    </div>
+                                    <button 
+                                        onClick={() => coverFileInputRef.current?.click()}
+                                        className="p-4 bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-gray-300 rounded-2xl hover:bg-primary hover:text-white transition-all shadow-sm flex items-center gap-2 group shrink-0"
+                                        title="Upload from device"
+                                    >
+                                        <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+                                        <span className="hidden md:inline text-xs font-bold uppercase tracking-widest">Device</span>
+                                    </button>
+                                    <input 
+                                        type="file" 
+                                        ref={coverFileInputRef} 
+                                        className="hidden" 
+                                        accept="image/*" 
+                                        onChange={handleCoverUpload} 
+                                    />
+                                </div>
+                                {formData.coverImage && (
+                                    <div className="mt-4 rounded-3xl overflow-hidden h-32 w-full border border-gray-100 dark:border-zinc-800 shadow-sm relative group">
+                                        <img src={formData.coverImage} alt="Cover Preview" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                                        {compressing && (
+                                            <div className="absolute inset-0 bg-white/60 dark:bg-black/60 flex items-center justify-center backdrop-blur-sm">
+                                                <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Email Address (Locked)</label>

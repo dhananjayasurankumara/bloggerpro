@@ -22,7 +22,8 @@ import {
   Layers,
   Sparkles,
   Zap,
-  Inbox
+  Inbox,
+  GraduationCap
 } from "lucide-react";
 
 export default function AdminLayout({
@@ -76,7 +77,7 @@ export default function AdminLayout({
 
       {/* Sidebar */}
       <aside className={`
-        fixed lg:sticky top-0 left-0 z-[90] h-screen w-72 bg-white dark:bg-black border-r border-gray-100 dark:border-gray-900 p-8 flex flex-col justify-between overflow-y-auto transition-transform duration-300
+        fixed lg:sticky top-0 left-0 z-[90] h-screen w-72 bg-white dark:bg-black border-r border-gray-100 dark:border-gray-900 p-8 flex flex-col justify-between overflow-y-auto admin-scrollbar transition-transform duration-300
         ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden
       `}>
@@ -99,6 +100,10 @@ export default function AdminLayout({
                 <Link onClick={() => setIsSidebarOpen(false)} href="/admin/articles" className="flex items-center space-x-3 px-4 py-2 hover:bg-primary/10 hover:text-primary rounded-xl font-bold transition-colors text-sm">
                   <FileText className="w-4 h-4" />
                   <span>Articles & Posts</span>
+                </Link>
+                <Link onClick={() => setIsSidebarOpen(false)} href="/admin/guides" className="flex items-center space-x-3 px-4 py-2 hover:bg-primary/10 hover:text-primary rounded-xl font-bold transition-colors text-sm">
+                  <GraduationCap className="w-4 h-4" />
+                  <span>Step-by-Step Roadmaps</span>
                 </Link>
                 <Link onClick={() => setIsSidebarOpen(false)} href="/admin/categories" className="flex items-center space-x-3 px-4 py-2 hover:bg-primary/10 hover:text-primary rounded-xl font-bold transition-colors text-sm">
                   <Tag className="w-4 h-4" />
@@ -194,7 +199,7 @@ export default function AdminLayout({
       )}
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto admin-scrollbar">
         {children}
       </main>
     </div>

@@ -7,8 +7,6 @@ import bcrypt from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
-  secret: process.env.NEXTAUTH_SECRET,
-  useSecureCookies: process.env.NODE_ENV === "production",
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
@@ -22,110 +20,61 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error("Missing credentials");
+          throw new Error("Invalid credentials");
         }
 
-        // Detect placeholder/disconnected database
-        const dbUrl = process.env.DATABASE_URL;
-        if (!dbUrl || dbUrl.includes("user:password")) {
-          console.warn("[AUTH] Login attempted in Disconnected Mode. Rejecting.");
-          throw new Error("Database offline. Use local SQLite or provide a valid connection string.");
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email },
+        });
+
+        if (!user || !user.password) {
+          throw new Error("User not found");
         }
 
-        try {
-          const user = await prisma.user.findUnique({
-            where: { email: credentials.email },
-          });
+        const isCorrectPassword = await bcrypt.compare(
+          credentials.password,
+          user.password
+        );
 
-          if (!user || !user.password) {
-            console.error(`[AUTH] User not found or no password: ${credentials.email}`);
-            throw new Error("Invalid credentials");
-          }
-
-          const isCorrectPassword = await bcrypt.compare(
-            credentials.password,
-            user.password
-          );
-
-          if (!isCorrectPassword) {
-            console.error(`[AUTH] Password mismatch for: ${credentials.email}`);
-            throw new Error("Invalid credentials");
-          }
-
-          return user;
-        } catch (error: any) {
-          console.error("[AUTH] Authorization logic failure:", {
-            message: error.message,
-            stack: error.stack,
-            credentials: { email: credentials?.email }
-          });
-          throw new Error(error.message || "Internal server error during auth");
+        if (!isCorrectPassword) {
+          throw new Error("Invalid password");
         }
+
+        return user;
       },
     }),
   ],
   pages: {
     signIn: "/login",
   },
-  logger: {
-    error(code, metadata) {
-      console.error(`[NEXTAUTH_ERROR] ${code}`, metadata);
-    },
-    warn(code) {
-      console.warn(`[NEXTAUTH_WARN] ${code}`);
-    },
-    debug(code, metadata) {
-      console.log(`[NEXTAUTH_DEBUG] ${code}`, metadata);
-    },
-  },
+  debug: process.env.NODE_ENV === "development",
   session: {
     strategy: "jwt",
   },
+  secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
     async session({ session, token }) {
-      console.log("[AUTH] Session callback triggered", { sub: token?.sub });
-      
       if (session.user && token.sub) {
-        // Detect placeholder/disconnected database
-        const dbUrl = process.env.DATABASE_URL;
-        if (!dbUrl || dbUrl.includes("user:password")) {
-          return session; // Return basic session without DB data
+        // Verify user still exists in DB
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.sub },
+          select: { id: true, role: true, bio: true }
+        });
+
+        if (!dbUser || dbUser.role === "BANNED") {
+          // If user doesn't exist or is banned, invalidate the session
+          return null as any;
         }
 
-        try {
-          // Verify user still exists in DB and select all required fields
-          const dbUser = await prisma.user.findUnique({
-            where: { id: token.sub },
-            select: { 
-              id: true, 
-              role: true, 
-              bio: true,
-              notifNetwork: true,
-              notifDirect: true,
-              notifMarket: true,
-              notifTransaction: true,
-              prefDarkMode: true,
-              prefLowNoise: true
-            }
-          });
-
-          if (!dbUser || dbUser.role === "BANNED") {
-            return null as any;
-          }
-
-          (session.user as any).id = dbUser.id;
-          (session.user as any).role = dbUser.role;
-          (session.user as any).bio = dbUser.bio;
-          (session.user as any).notifNetwork = dbUser.notifNetwork;
-          (session.user as any).notifDirect = dbUser.notifDirect;
-          (session.user as any).notifMarket = dbUser.notifMarket;
-          (session.user as any).notifTransaction = dbUser.notifTransaction;
-          (session.user as any).prefDarkMode = dbUser.prefDarkMode;
-          (session.user as any).prefLowNoise = dbUser.prefLowNoise;
-        } catch (error) {
-          console.error("[AUTH_SESSION_ERROR] Database unreachable, serving limited session:", error);
-          // Return the basic session from token/OAuth without DB enhancements
-        }
+        (session.user as any).id = dbUser.id;
+        (session.user as any).role = dbUser.role;
+        (session.user as any).bio = dbUser.bio;
+        (session.user as any).notifNetwork = (dbUser as any).notifNetwork;
+        (session.user as any).notifDirect = (dbUser as any).notifDirect;
+        (session.user as any).notifMarket = (dbUser as any).notifMarket;
+        (session.user as any).notifTransaction = (dbUser as any).notifTransaction;
+        (session.user as any).prefDarkMode = (dbUser as any).prefDarkMode;
+        (session.user as any).prefLowNoise = (dbUser as any).prefLowNoise;
       }
       return session;
     },

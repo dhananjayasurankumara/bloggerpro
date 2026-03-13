@@ -5,22 +5,14 @@ import prisma from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export default async function ForumPage() {
-  // Fetch real stats with safety guards
-  let totalUsers = 0;
-  let totalPosts = 0;
-  let categoryStats: any[] = [];
+  // Fetch real stats
+  const [totalUsers, forumPostsCount, forumTopicsCount] = await Promise.all([
+    prisma.user.count(),
+    prisma.forumPost.count(),
+    prisma.forumTopic.count()
+  ]);
 
-  try {
-    const [usersCount, forumPostsCount, forumTopicsCount] = await Promise.all([
-      prisma.user.count().catch(() => 0),
-      prisma.forumPost.count().catch(() => 0),
-      prisma.forumTopic.count().catch(() => 0)
-    ]);
-    totalUsers = usersCount;
-    totalPosts = forumPostsCount + forumTopicsCount;
-  } catch (error) {
-    console.error("[FORUM_STATS_ERROR] Failed to fetch stats:", error);
-  }
+  const totalPosts = forumPostsCount + forumTopicsCount;
 
   // Defensive rules fetch
   let rules: any[] = [];
@@ -61,21 +53,16 @@ export default async function ForumPage() {
     }
   ];
 
-  try {
-    // Fetch counts for each category
-    categoryStats = await Promise.all(
-      forumCategories.map(async (cat) => {
-        const [topics, replies] = await Promise.all([
-          prisma.forumTopic.count({ where: { category: cat.slug } }).catch(() => 0),
-          prisma.forumPost.count({ where: { topic: { category: cat.slug } } }).catch(() => 0)
-        ]);
-        return { ...cat, topics, replies };
-      })
-    );
-  } catch (error) {
-    console.error("[FORUM_CATEGORY_STATS_ERROR] Failed to fetch category stats:", error);
-    categoryStats = forumCategories.map(cat => ({ ...cat, topics: 0, replies: 0 }));
-  }
+  // Fetch counts for each category
+  const categoryStats = await Promise.all(
+    forumCategories.map(async (cat) => {
+      const [topics, replies] = await Promise.all([
+        prisma.forumTopic.count({ where: { category: cat.slug } }),
+        prisma.forumPost.count({ where: { topic: { category: cat.slug } } })
+      ]);
+      return { ...cat, topics, replies };
+    })
+  );
 
   return (
     <div className="min-h-screen bg-white dark:bg-black pt-32 pb-20">

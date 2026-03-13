@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       matchedCommand = allCommands.find(c => 
         lastUserMessage.includes(c.command.toLowerCase()) || 
         c.command.toLowerCase().includes(lastUserMessage)
-      ) || null;
+      );
     }
 
     if (matchedCommand && matchedCommand.active) {

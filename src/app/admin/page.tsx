@@ -21,7 +21,8 @@ import {
   Zap,
   CheckCircle2,
   Clock,
-  Calendar
+  Calendar,
+  GraduationCap
 } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -45,7 +46,15 @@ export default async function AdminDashboard() {
     prisma.post.aggregate({ _sum: { viewCount: true } }),
     prisma.forumTopic.aggregate({ _sum: { viewCount: true } }),
     (prisma as any).postVote ? (prisma as any).postVote.count() : Promise.resolve(0),
-    (prisma as any).topicVote ? (prisma as any).topicVote.count() : (prisma as any).topicLike ? (prisma as any).topicLike.count() : Promise.resolve(0)
+    (prisma as any).topicVote ? (prisma as any).topicVote.count() : (prisma as any).topicLike ? (prisma as any).topicLike.count() : Promise.resolve(0),
+    prisma.post.count({
+      where: { 
+          OR: [
+              { category: { slug: "wealth-building" } },
+              { category: { slug: "passive-income" } }
+          ]
+      }
+    })
   ]);
 
   const postsCount = results[0].status === 'fulfilled' ? results[0].value : 0;
@@ -56,6 +65,7 @@ export default async function AdminDashboard() {
   const topicViewsResult: any = results[5].status === 'fulfilled' ? results[5].value : { _sum: { viewCount: 0 } };
   const postEngagementCount = results[6].status === 'fulfilled' ? results[6].value : 0;
   const topicEngagementCount = results[7].status === 'fulfilled' ? results[7].value : 0;
+  const activeRoadmapsCount = results[8].status === 'fulfilled' ? results[8].value : 0;
 
   const totalViews = (postViewsResult._sum?.viewCount || 0) + (topicViewsResult._sum?.viewCount || 0);
   const totalEngagement = postEngagementCount + topicEngagementCount;
@@ -133,12 +143,14 @@ export default async function AdminDashboard() {
       </header>
 
       {/* Real-Time Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {[
-          { label: "Total Reach", value: totalViews.toLocaleString(), icon: Eye, color: "text-blue-500", detail: "Real-time Platform Views", trend: "+18%" },
+          { label: "Total Reach", value: totalViews.toLocaleString(), icon: Eye, color: "text-blue-500", detail: "Published Views", trend: "+18%" },
           { label: "Community", value: usersCount.toLocaleString(), icon: Users, color: "text-emerald-500", detail: `${proUsersCount} Premium Members`, trend: "+5%" },
-          { label: "Engagement", value: totalEngagement.toLocaleString(), icon: Heart, color: "text-rose-500", detail: "Content Votes & Activity", trend: "+24%" },
-          { label: "Revenue", value: `$${revenue.toLocaleString()}`, icon: TrendingUp, color: "text-amber-500", detail: "Estimated Monthly (MRR)", trend: "+12%" },
+          { label: "Roadmaps", value: activeRoadmapsCount.toLocaleString(), icon: GraduationCap as any, color: "text-purple-500", detail: "Active Blueprints", trend: "Catalog" },
+          { label: "Engagement", value: totalEngagement.toLocaleString(), icon: Heart, color: "text-rose-500", detail: "Content Votes", trend: "+24%" },
+          { label: "Moderation", value: (await prisma.post.count({ where: { status: "PENDING" } })).toLocaleString(), icon: Clock as any, color: "text-amber-500", detail: "Pending Review", trend: "Review" },
+          { label: "Revenue", value: `$${revenue.toLocaleString()}`, icon: TrendingUp, color: "text-amber-500", detail: "Monthly (MRR)", trend: "+12%" },
         ].map((stat) => (
           <div key={stat.label} className="p-8 bg-zinc-950 rounded-[40px] border border-zinc-900 shadow-xl group hover:border-primary/50 transition-all hover:-translate-y-1">
             <div className="flex justify-between items-start mb-6">
@@ -146,8 +158,8 @@ export default async function AdminDashboard() {
                 <stat.icon className="w-6 h-6" />
               </div>
               <div className="flex flex-col items-end">
-                  <span className="px-2 py-1 bg-emerald-500/10 text-emerald-500 text-[10px] font-bold rounded-lg flex items-center gap-1">
-                    {stat.trend} <ArrowUpRight className="w-3 h-3" />
+                  <span className={`px-2 py-1 ${stat.label === 'Moderation' ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'} text-[10px] font-bold rounded-lg flex items-center gap-1`}>
+                    {stat.trend} {stat.label !== 'Moderation' && <ArrowUpRight className="w-3 h-3" />}
                   </span>
               </div>
             </div>
@@ -157,10 +169,10 @@ export default async function AdminDashboard() {
                 <div className="mt-6 pt-6 border-t border-zinc-900 flex items-center justify-between text-[10px] font-bold text-zinc-500">
                     <span className="flex items-center gap-2">
                         <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                          <span className={`${stat.label === 'Moderation' ? 'bg-amber-400' : 'bg-emerald-400'} animate-ping absolute inline-flex h-full w-full rounded-full opacity-75`}></span>
+                          <span className={`relative inline-flex rounded-full h-2 w-2 ${stat.label === 'Moderation' ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
                         </span>
-                        SYNCED
+                        {stat.label === 'Moderation' ? 'ACTION' : 'SYNCED'}
                     </span>
                     <span className="italic">{stat.detail}</span>
                 </div>

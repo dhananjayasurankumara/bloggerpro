@@ -1,10 +1,9 @@
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -30,6 +29,7 @@ model User {
   subscriptionId   String?
   stripeCustomerId String?
   isProfilePublic  Boolean         @default(true)
+  coverImage       String?
   notifNetwork     Boolean         @default(true)
   notifDirect      Boolean         @default(true)
   notifMarket      Boolean         @default(false)
@@ -38,9 +38,7 @@ model User {
   prefLowNoise     Boolean         @default(false)
   accounts         Account[]
   comments         Comment[]
-  commentLikes     CommentLike[]
   forumPosts       ForumPost[]
-  forumPostVotes   ForumPostVote[]
   forumTopics      ForumTopic[]
   notifications    Notification[]
   orders           Order[]
@@ -49,7 +47,10 @@ model User {
   sessions         Session[]
   topicLikes       TopicLike[]
   topicVotes       TopicVote[]
+  forumPostVotes   ForumPostVote[]
+  commentLikes    CommentLike[]
   bookmarks        Post[]          @relation("UserBookmarks")
+  guides           Guide[]         @relation("UserGuides")
 }
 
 model Account {
@@ -90,15 +91,42 @@ model Post {
   readTime      String?
   viewCount     Int        @default(0)
   votes         Int        @default(0)
+  status        String     @default("PUBLISHED") // DRAFT, PENDING, PUBLISHED, REJECTED
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   authorId      String
   categoryId    String
   comments      Comment[]
-  author        User       @relation(fields: [authorId], references: [id])
   category      Category   @relation(fields: [categoryId], references: [id])
+  author        User       @relation(fields: [authorId], references: [id])
   postVotes     PostVote[]
   bookmarkedBy  User[]     @relation("UserBookmarks")
+}
+
+model Guide {
+  id            String      @id @default(cuid())
+  title         String
+  slug          String      @unique
+  description   String
+  price         Float       @default(0)
+  image         String?
+  isPremium     Boolean     @default(true)
+  published     Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  steps         GuideStep[]
+  enrollments   User[]      @relation("UserGuides")
+}
+
+model GuideStep {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  order     Int
+  guideId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  guide     Guide    @relation(fields: [guideId], references: [id], onDelete: Cascade)
 }
 
 model Category {
@@ -109,24 +137,24 @@ model Category {
 }
 
 model Comment {
-  id           String        @id @default(cuid())
-  content      String
-  createdAt    DateTime      @default(now())
-  userId       String
-  postId       String
-  parentId     String?
-  isAnonymous  Boolean       @default(false)
-  votes        Int           @default(0)
-  parent       Comment?      @relation("CommentReplies", fields: [parentId], references: [id])
-  replies      Comment[]     @relation("CommentReplies")
-  post         Post          @relation(fields: [postId], references: [id])
-  user         User          @relation(fields: [userId], references: [id])
+  id          String        @id @default(cuid())
+  content     String
+  createdAt   DateTime      @default(now())
+  userId      String
+  postId      String
+  parentId    String?
+  isAnonymous Boolean       @default(false)
+  votes       Int           @default(0)
+  parent      Comment?      @relation("CommentReplies", fields: [parentId], references: [id])
+  replies     Comment[]     @relation("CommentReplies")
+  post        Post          @relation(fields: [postId], references: [id])
+  user        User          @relation(fields: [userId], references: [id])
   commentLikes CommentLike[]
 }
 
 model PostVote {
   id        String   @id @default(cuid())
-  type      Int
+  type      Int      // 1 or -1
   userId    String
   postId    String
   createdAt DateTime @default(now())
@@ -175,10 +203,10 @@ model ForumPost {
   isEdited  Boolean         @default(false)
   votes     Int             @default(0)
   updatedAt DateTime        @updatedAt
-  author    User            @relation(fields: [authorId], references: [id])
   parent    ForumPost?      @relation("ForumReplies", fields: [parentId], references: [id])
   replies   ForumPost[]     @relation("ForumReplies")
   topic     ForumTopic      @relation(fields: [topicId], references: [id])
+  author    User            @relation(fields: [authorId], references: [id])
   postVotes ForumPostVote[]
 }
 
@@ -207,7 +235,7 @@ model TopicVote {
 
 model ForumPostVote {
   id        String    @id @default(cuid())
-  type      Int
+  type      Int       // 1 or -1
   userId    String
   postId    String
   createdAt DateTime  @default(now())

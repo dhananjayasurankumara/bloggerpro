@@ -1,5 +1,4 @@
 import prisma from "@/lib/prisma";
-/* Production Sync: 2026-03-12 */
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { NextResponse } from "next/server";
@@ -24,7 +23,7 @@ export async function POST(
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      const existingVote = await (tx as any).commentLike.findUnique({
+      const existingVote = await tx.commentVote.findUnique({
         where: { userId_commentId: { userId, commentId } }
       });
 
@@ -33,19 +32,27 @@ export async function POST(
 
       if (type === 0) {
         if (existingVote) {
-          await (tx as any).commentLike.delete({ where: { id: existingVote.id } });
-          voteChange = -1; // Likes are only 1 or 0
-          pointAward = -1;
+          await tx.commentVote.delete({ where: { id: existingVote.id } });
+          voteChange = -existingVote.type;
+          if (existingVote.type === 1) pointAward = -1;
         }
       } else {
         if (existingVote) {
-          return { status: 'unchanged' };
-        } else {
-          await (tx as any).commentLike.create({
-            data: { userId, commentId }
+          if (existingVote.type === type) return { status: 'unchanged' };
+          
+          await tx.commentVote.update({
+            where: { id: existingVote.id },
+            data: { type }
           });
-          voteChange = 1;
-          pointAward = 1;
+          voteChange = type - existingVote.type;
+          if (type === 1) pointAward = 1;
+          else if (existingVote.type === 1) pointAward = -1;
+        } else {
+          await tx.commentVote.create({
+            data: { userId, commentId, type }
+          });
+          voteChange = type;
+          if (type === 1) pointAward = 1;
         }
       }
 

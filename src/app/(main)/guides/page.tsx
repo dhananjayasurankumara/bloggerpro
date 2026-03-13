@@ -1,29 +1,18 @@
 import prisma from "@/lib/prisma";
 import ArticleCard from "@/components/ArticleCard";
-import { BookOpen, GraduationCap, ArrowRight, Zap } from "lucide-react";
+import { BookOpen, GraduationCap, ArrowRight, Zap, Clock } from "lucide-react";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
 export default async function GuidesPage() {
-  // We'll look for posts in a "Guides" or "Wealth Building" category as a proxy for "Guides"
-  // In a real app, this would be a specific category slug 'guides'
-  const guides = await prisma.post.findMany({
+  const guides = await prisma.guide.findMany({
     where: { 
         published: true,
-        OR: [
-            { category: { slug: "wealth-building" } },
-            { category: { slug: "passive-income" } }
-        ]
     },
     include: {
-      author: {
-        select: { name: true, image: true },
-      },
-      category: {
-        select: { name: true, slug: true },
-      },
       _count: {
-        select: { bookmarkedBy: true },
+        select: { steps: true, enrollments: true },
       },
     },
     orderBy: {
@@ -70,20 +59,48 @@ export default async function GuidesPage() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-              {guides.map((post: any) => (
-                <div key={post.id} className="group relative">
-                    <div className="absolute -inset-4 bg-primary/5 rounded-[40px] opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
-                    <ArticleCard post={{
-                    ...post,
-                    readTime: post.readTime || "15 min read",
-                    _count: { bookmarks: post._count.bookmarkedBy }
-                    }} />
-                    <div className="mt-4 flex items-center justify-between px-2">
-                         <div className="flex items-center gap-2">
-                            <Zap className="w-3.5 h-3.5 text-accent" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Practical Workshop</span>
-                         </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {guides.map((guide: any) => (
+                <div key={guide.id} className="group bg-white dark:bg-black rounded-[40px] border border-gray-100 dark:border-gray-900 shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all overflow-hidden flex flex-col">
+                    <div className="relative h-48 overflow-hidden grayscale group-hover:grayscale-0 transition-all duration-700">
+                        {guide.image ? (
+                            <img src={guide.image} alt={guide.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                        ) : (
+                            <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+                                <GraduationCap className="w-12 h-12 text-primary opacity-20" />
+                            </div>
+                        )}
+                        <div className="absolute top-4 right-4 px-3 py-1 bg-black/50 backdrop-blur-md rounded-full text-[10px] font-black text-white uppercase tracking-widest border border-white/20">
+                            {guide.price > 0 ? `$${guide.price}` : 'Free Access'}
+                        </div>
+                    </div>
+
+                    <div className="p-8 flex-1 flex flex-col justify-between">
+                        <div>
+                            <div className="flex items-center gap-2 mb-4">
+                                <span className="px-3 py-1 bg-primary/10 text-primary text-[9px] font-black uppercase tracking-widest rounded-lg">
+                                    Financial Blueprint
+                                </span>
+                            </div>
+                            <h3 className="text-xl font-display font-bold mb-3 group-hover:text-primary transition-colors">{guide.title}</h3>
+                            <p className="text-gray-500 text-sm line-clamp-2 italic leading-relaxed mb-6">{guide.description}</p>
+                        </div>
+
+                        <div className="pt-6 border-t border-gray-50 dark:border-zinc-900 flex items-center justify-between">
+                             <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-1.5 text-gray-400">
+                                    <Clock className="w-3.5 h-3.5" />
+                                    <span className="text-[10px] font-bold">{guide._count?.steps || 0} Phases</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-gray-400">
+                                    <Zap className="w-3.5 h-3.5 text-accent" />
+                                    <span className="text-[10px] font-bold">{guide._count?.enrollments || 0} Students</span>
+                                </div>
+                             </div>
+                             <Link href={`/guides/${guide.slug}`} className="p-2 bg-gray-50 dark:bg-zinc-900 text-gray-400 group-hover:text-primary group-hover:bg-primary/10 rounded-xl transition-all">
+                                <ArrowRight className="w-4 h-4" />
+                             </Link>
+                        </div>
                     </div>
                 </div>
               ))}
